@@ -1,0 +1,17 @@
+# Render Blueprint — deploys the Stockfish engine service.
+# Dashboard → New → Blueprint → select this repo.
+services:
+  - type: web
+    name: chess-engine-server
+    runtime: docker
+    # free tier (0.1 CPU) makes the per-game engine pass painfully slow;
+    # starter is the smallest plan where depth-14 analysis is usable.
+    plan: starter
+    rootDir: src/chess-engine-server
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: ENABLE_MAIA
+        value: "false"
+      - key: ENGINE_SERVICE_TOKEN
+        generateValue: true

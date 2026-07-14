@@ -26,6 +26,7 @@ COPY . .
 EXPOSE 8001
 
 HEALTHCHECK --interval=15s --timeout=10s --start-period=60s --retries=5 \
-    CMD curl -f http://localhost:8001/healthz || exit 1
+    CMD curl -f http://localhost:${PORT:-8001}/healthz || exit 1
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]
+# Render injects PORT; local compose relies on the 8001 default
+CMD uvicorn main:app --host 0.0.0.0 --port ${PORT:-8001}
