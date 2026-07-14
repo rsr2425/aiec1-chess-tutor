@@ -6,7 +6,7 @@ A web-based chess coach that reads your annotated games, identifies your
 recurring mistakes, and remembers them across every game you've ever uploaded —
 like a real coach's notebook.
 
-**Live demo:** _link after deployment_  
+**Live demo:** https://blunderstanding.vercel.app  
 **Loom walkthrough:** _link after recording_
 
 ---
@@ -50,9 +50,10 @@ A Agentic Chess Tutor for Adult Chess improvers
 
 ### Task 4 — Prototype
 
-- **Agent:** LangSmith deployment URL: _link_
-- **UI:** Vercel URL: _link_
-- **Engine Service:** Render URL: _link_
+- **UI (public entry point):** https://blunderstanding.vercel.app
+- **Agent:** LangSmith deployment https://chess-tutor-e7b2caed588f50fcaace1374635bf330.us.langgraph.app (API-key protected; called server-side by the UI's API routes)
+- **Engine Service:** Render https://chess-engine-server-hbp2.onrender.com (bearer-token protected; `/healthz` is public)
+- **Vector store:** Qdrant Cloud (`library` corpus ingested: 419 chunks)
 
 ### Task 5 — Evaluations
 
@@ -90,10 +91,10 @@ See `PRD.md §7`:
 cp .env.example .env
 # fill in API keys
 
-make dev-build     # first run (builds images)
-make dev           # subsequent runs
+make build         # first run (builds images)
+make up            # subsequent runs
 
-# localhost:3000   — UI
+# localhost:3001   — UI
 # localhost:8000   — LangGraph backend
 # localhost:8001   — Engine service
 # localhost:6333   — Qdrant
