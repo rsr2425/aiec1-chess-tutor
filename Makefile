@@ -58,19 +58,31 @@ shell-backend:
 shell-engine:
 	docker compose exec chess-engine-server bash
 
-# ── Data ingestion ────────────────────────────────────────────────────────────
+# ── Data ingestion ─────────────────────────────────────────────────────────────
+# Run from the host against local Qdrant by default. For Qdrant Cloud:
+#   make ingest QDRANT_URL=https://<cluster>.cloud.qdrant.io:6333 QDRANT_API_KEY=<key>
+QDRANT_URL ?= http://localhost:6333
+QDRANT_API_KEY ?=
+
 ingest:
-	docker compose run --rm backend uv run python ../../scripts/ingest_library.py
+	cd src/backend && set -a && . ../../.env && set +a && \
+		QDRANT_URL="$(QDRANT_URL)" QDRANT_API_KEY="$(QDRANT_API_KEY)" \
+		uv run python ../../scripts/ingest_library.py
 
 fetch-games:
-	docker compose run --rm backend uv run python ../../scripts/fetch_lichess_games.py
+	cd src/backend && set -a && . ../../.env && set +a && \
+		uv run python ../../scripts/fetch_lichess_games.py
 
 # ── Evals ─────────────────────────────────────────────────────────────────────
 eval-retrieval:
-	docker compose run --rm backend uv run python ../../evals/retrieval_ragas.py
+	cd src/backend && set -a && . ../../.env && set +a && \
+		QDRANT_URL="$(QDRANT_URL)" QDRANT_API_KEY="$(QDRANT_API_KEY)" \
+		uv run python ../../evals/retrieval_ragas.py
 
 eval-planted:
-	docker compose run --rm backend uv run python ../../evals/planted_mistakes/run.py
+	cd src/backend && set -a && . ../../.env && set +a && \
+		QDRANT_URL="$(QDRANT_URL)" QDRANT_API_KEY="$(QDRANT_API_KEY)" \
+		uv run python ../../evals/planted_mistakes/run.py
 
 # ── Code quality ──────────────────────────────────────────────────────────────
 lint:

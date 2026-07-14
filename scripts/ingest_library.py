@@ -21,7 +21,7 @@ import re
 import urllib.request
 from typing import Iterator
 
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from langchain_qdrant import QdrantVectorStore
@@ -156,7 +156,12 @@ def main() -> None:
     client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY or None)
     ensure_collection(client)
 
-    embed_kwargs: dict = {"model": EMBED_MODEL, "api_key": AI_GATEWAY_API_KEY}
+    embed_kwargs: dict = {
+        "model": EMBED_MODEL,
+        "api_key": AI_GATEWAY_API_KEY,
+        # Disable tiktoken pre-check — it corrupts the request body through the AI gateway
+        "check_embedding_ctx_length": False,
+    }
     if AI_GATEWAY_BASE_URL:
         embed_kwargs["base_url"] = AI_GATEWAY_BASE_URL + "/v1"
     embeddings = OpenAIEmbeddings(**embed_kwargs)
