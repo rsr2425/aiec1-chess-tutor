@@ -1,0 +1,8 @@
+{
+  "dependencies": ["."],
+  "graphs": {
+    "distillation": "app/graphs/distillation.py:graph",
+    "chat": "app/graphs/chat.py:graph"
+  },
+  "env": ".env"
+}
