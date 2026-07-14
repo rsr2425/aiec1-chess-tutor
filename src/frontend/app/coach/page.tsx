@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import UploadCard from "@/components/UploadCard";
 import TakeawayList from "@/components/TakeawayList";
 import Chat from "@/components/Chat";
+import Header from "@/components/Header";
 
 // react-chessboard must be dynamically imported (no SSR)
 const BoardPanel = dynamic(() => import("@/components/BoardPanel"), { ssr: false });
@@ -89,13 +90,7 @@ export default function CoachPage() {
 
   return (
     <div className="flex h-screen flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-stone-800 bg-stone-900 px-6 py-3">
-        <span className="font-bold text-lg">
-          <span className="text-red-400">Blunder</span><span className="text-green-400">standing</span>
-        </span>
-        <span className="text-sm text-stone-400">Playing as {username}</span>
-      </header>
+      <Header username={username} />
 
       <div className="flex flex-1 min-h-0 flex-col md:flex-row overflow-hidden">
         {/* Left column: Upload + Board */}
