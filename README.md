@@ -19,6 +19,10 @@ Adult chess improvers, especially early intermediate players, need personalized 
 
 The audience I'm targetting for this problem is early/intermediate Adult chess improvers. Adults who play chess as a hobby and strive to get better because of the feeling of satisfaction from getting better. Unlike a lot of hobbies, you can literaly see this concretely from a number called an elo rating which tells you how you stack against other players. Since the pandemic, and the release of the widely popular Queen's gambit series, there's been a massive spike in popularity. I've personally seen decently sized communities online of adult improvers, who spend lots of practicing and are even willing to spend money to buy courses (e.g. chessable) and fly to tournaments. 
 
+**How the user solves this today:**
+
+![Task 1 — how an adult improver reviews games today](graphs/task1_user_workflow.png)
+
 There's a lot of generic resources online, but personalized feedback is ideal. Chess.com for example has a game review option, but it's really hard for someone who's not very skilled to understand the results, because the review relies on a game engine. And engines are A LOT better than humans now and don't play in very "human" ways. So a "mistake" might not actually be a mistake practically speaking for a hobbyist. As mentioned before, adults may be willing to pay money and invest the time, but not necessarily for coaching. Coaching can be expensive, especially for a side hobby (if you start as an adult, you're very very VERY unlikely to become a pro lol). It can also be hard to coordinate schedules.
 
 Output can be evaluated against--------
@@ -26,6 +30,14 @@ Output can be evaluated against--------
 ### Task 2 — Solution
 
 A Agentic Chess Tutor for Adult Chess improvers
+
+**Infrastructure:**
+
+![Task 2 — deployed infrastructure](graphs/task2_infrastructure.png)
+
+**Agent workflow (distillation graph + chat agent):**
+
+![Task 2 — agent workflow](graphs/task2_agent_workflow.png)
 
     1. LLM(s) - 
     2. Agent orchestration framework -
