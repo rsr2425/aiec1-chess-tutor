@@ -128,7 +128,16 @@ async def run_benchmark(max_games: int | None = None) -> None:
 
     ANNOTATED_DIR.mkdir(exist_ok=True)
 
+    # Per-game results are appended immediately so an interrupted run resumes
+    # instead of losing everything.
+    partial_path = RESULTS_DIR / f"planted_partial_{DISTILL_MODEL.replace('/', '_')}.jsonl"
     results = []
+    if partial_path.exists():
+        results = [json.loads(line) for line in partial_path.read_text().splitlines() if line.strip()]
+        done = {r["game"] for r in results}
+        print(f"Resuming: {len(done)} games already scored in {partial_path.name}")
+        pgn_files = [p for p in pgn_files if p.name not in done]
+
     for pgn_path in pgn_files:
         pgn = pgn_path.read_text()
 
@@ -187,6 +196,8 @@ async def run_benchmark(max_games: int | None = None) -> None:
             "recall": matched / len(planted),
             "rubric_avg": rubric_avg,
         })
+        with partial_path.open("a") as f:
+            f.write(json.dumps(results[-1]) + "\n")
         print(f"  precision={results[-1]['precision']:.2f}, recall={results[-1]['recall']:.2f}, rubric={rubric_avg:.1f}")
 
     # Write results
