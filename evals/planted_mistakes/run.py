@@ -44,7 +44,14 @@ MISCONCEPTION_CATALOG = [
 def _llm(model: str = None):
     from langchain_openai import ChatOpenAI
     m = model or DISTILL_MODEL
-    kwargs = {"model": m, "api_key": AI_GATEWAY_API_KEY, "temperature": 0.3}
+    kwargs = {
+        "model": m,
+        "api_key": AI_GATEWAY_API_KEY,
+        "temperature": 0.3,
+        # A single unbounded call can hang the whole benchmark
+        "timeout": 120,
+        "max_retries": 2,
+    }
     if AI_GATEWAY_BASE_URL:
         kwargs["base_url"] = AI_GATEWAY_BASE_URL + "/v1"
     return ChatOpenAI(**kwargs)
@@ -140,18 +147,32 @@ async def run_benchmark(max_games: int | None = None) -> None:
             cache_path.write_text(json.dumps({"planted": planted, "annotated_pgn": annotated_pgn}))
 
         from uuid import uuid4
-        state = await distillation_graph.ainvoke({
-            "user_id": f"benchmark-{uuid4().hex[:8]}",
-            "game_id": pgn_path.stem,
-            "pgn": annotated_pgn,
-            "student_color": "white",
-            "student_rating": 1400,
-        })
+        try:
+            state = await asyncio.wait_for(
+                distillation_graph.ainvoke({
+                    "user_id": f"benchmark-{uuid4().hex[:8]}",
+                    "game_id": pgn_path.stem,
+                    "pgn": annotated_pgn,
+                    "student_color": "white",
+                    "student_rating": 1400,
+                }),
+                timeout=480,  # hard cap per game — skip rather than hang the run
+            )
+        except Exception as exc:
+            print(f"  SKIPPED — distillation failed or timed out: {exc!r}")
+            continue
 
         takeaways = state.get("takeaways", [])
         judgments = []
         for t in takeaways:
-            j = await judge_takeaway(t.text if hasattr(t, "text") else t["text"], planted)
+            try:
+                j = await asyncio.wait_for(
+                    judge_takeaway(t.text if hasattr(t, "text") else t["text"], planted),
+                    timeout=120,
+                )
+            except Exception as exc:
+                print(f"  judge failed ({exc!r}) — scoring as no-match")
+                j = {"matches_misconception": False, "matched": None, "rubric": 0}
             judgments.append(j)
 
         matched = sum(1 for j in judgments if j["matches_misconception"])
