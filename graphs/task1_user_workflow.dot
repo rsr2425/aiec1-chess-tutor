@@ -1,0 +1,23 @@
+// Task 1 — How an adult chess improver handles post-game review today
+digraph task1_user_workflow {
+    rankdir=LR;
+    fontname="Helvetica";
+    node [fontname="Helvetica", fontsize=11, shape=box, style="rounded,filled", fillcolor="#f5f0e8", color="#8a7a5c"];
+    edge [fontname="Helvetica", fontsize=9, color="#6b5d45"];
+
+    play      [label="Play online game\n(chess.com / lichess)"];
+    review    [label="Run engine 'Game Review'", fillcolor="#e8eef5", color="#5c6f8a"];
+    evals     [label="See engine output:\n'?? 14...Nxe5 −3.2, best was Rf8'"];
+    confused  [label="Can't translate engine line\ninto a human lesson", fillcolor="#f5e0dd", color="#a05648"];
+    generic   [label="Watch generic videos /\nbuy course (Chessable)"];
+    coach     [label="Hire human coach", fillcolor="#eee8f5", color="#7a5c8a"];
+    cost      [label="Expensive + scheduling\nfriction for a hobby", fillcolor="#f5e0dd", color="#a05648"];
+    repeat    [label="Same mistakes recur\nnext game", fillcolor="#f5e0dd", color="#a05648", penwidth=2];
+
+    play -> review -> evals -> confused;
+    confused -> generic [label="most common"];
+    confused -> coach   [label="rare"];
+    coach -> cost -> repeat;
+    generic -> repeat [label="advice not tied\nto own games"];
+    repeat -> play [label="next game", style=dashed];
+}

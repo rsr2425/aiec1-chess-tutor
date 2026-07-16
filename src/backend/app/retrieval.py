@@ -74,7 +74,10 @@ def library_retriever(k: int = 4):
         url=_QDRANT_URL,
         api_key=_QDRANT_API_KEY or None,
     )
-    return store.as_retriever(search_kwargs={"k": k})
+    dense = store.as_retriever(search_kwargs={"k": k})
+    if os.getenv("USE_ENSEMBLE_RETRIEVER", "").lower() not in ("1", "true", "yes"):
+        return dense
+    return _library_ensemble_retriever(dense, k=k)
 
 
 def moments_retriever(user_id: str, k: int = 4):
@@ -137,12 +140,29 @@ def upsert_game_summary(summary_doc: Document) -> None:
 
 
 # ── Task 6: ensemble retriever (BM25 + dense) ────────────────────────────────
-# Uncomment and wire in retrieval.py when running Task 6 experiments.
-#
-# from langchain.retrievers import EnsembleRetriever
-# from langchain_community.retrievers import BM25Retriever
-#
-# def library_ensemble_retriever(docs: list[Document], k: int = 4):
-#     bm25 = BM25Retriever.from_documents(docs, k=k)
-#     dense = library_retriever(k=k)
-#     return EnsembleRetriever(retrievers=[bm25, dense], weights=[0.5, 0.5])
+# Enabled with USE_ENSEMBLE_RETRIEVER=true. The library corpus is static for
+# the POC, so the BM25 index is built once per process and cached.
+
+_bm25_retriever = None
+
+
+def _library_ensemble_retriever(dense, k: int = 4):
+    global _bm25_retriever
+    from langchain.retrievers import EnsembleRetriever
+    from langchain_community.retrievers import BM25Retriever
+
+    if _bm25_retriever is None:
+        points, _ = _qdrant_client().scroll(
+            collection_name=LIBRARY, limit=1000, with_payload=True
+        )
+        docs = [
+            Document(
+                page_content=p.payload.get("page_content", ""),
+                metadata=p.payload.get("metadata", {}),
+            )
+            for p in points
+            if p.payload.get("page_content")
+        ]
+        _bm25_retriever = BM25Retriever.from_documents(docs, k=k)
+    _bm25_retriever.k = k
+    return EnsembleRetriever(retrievers=[_bm25_retriever, dense], weights=[0.5, 0.5])

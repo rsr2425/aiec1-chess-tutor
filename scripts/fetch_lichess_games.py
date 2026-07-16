@@ -53,7 +53,7 @@ def fetch_and_sample(year: int, month: int, count: int) -> list[str]:
 
     with dctx.stream_reader(response.raw) as reader:
         text_reader = io.TextIOWrapper(reader, encoding="utf-8", errors="replace")
-        while len(games) < count * 50:  # oversample and filter
+        while len(games) < count * 10:  # oversample and filter
             game = chess.pgn.read_game(text_reader)
             if game is None:
                 break

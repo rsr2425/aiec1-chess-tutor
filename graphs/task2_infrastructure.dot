@@ -1,0 +1,43 @@
+// Task 2 — Deployed infrastructure (production topology)
+digraph task2_infrastructure {
+    rankdir=TB;
+    fontname="Helvetica";
+    compound=true;
+    node [fontname="Helvetica", fontsize=11, shape=box, style="rounded,filled", fillcolor="#f5f0e8", color="#8a7a5c"];
+    edge [fontname="Helvetica", fontsize=9, color="#6b5d45"];
+
+    browser [label="Browser\n(phone / laptop)", fillcolor="#e8eef5", color="#5c6f8a"];
+
+    subgraph cluster_vercel {
+        label="Vercel";
+        style="rounded"; color="#5c6f8a"; fontname="Helvetica";
+        frontend [label="Next.js UI — blunderstanding.vercel.app\nAPI routes proxy server-side (keys never in browser)"];
+    }
+
+    subgraph cluster_langsmith {
+        label="LangSmith Deployment";
+        style="rounded"; color="#7a5c8a"; fontname="Helvetica";
+        backend [label="LangGraph Agent Server\ngraphs: distillation + chat"];
+        store   [label="LangGraph Store\n(persistent Lessons per user)", shape=cylinder, fillcolor="#eee8f5"];
+        traces  [label="LangSmith tracing & monitoring", fillcolor="#eee8f5"];
+    }
+
+    subgraph cluster_render {
+        label="Render";
+        style="rounded"; color="#5c8a6b"; fontname="Helvetica";
+        engine [label="Chess Engine Service (FastAPI)\nStockfish · bearer-token auth"];
+    }
+
+    qdrant  [label="Qdrant Cloud\nlibrary · moments · game_summaries", shape=cylinder, fillcolor="#e8f5ee", color="#5c8a6b"];
+    gateway [label="Vercel AI Gateway\nLLM: gpt-4.1-mini · embeddings:\ntext-embedding-3-small", fillcolor="#f5eee0", color="#8a755c"];
+    tavily  [label="Tavily\nweb search API", fillcolor="#f5eee0", color="#8a755c"];
+
+    browser  -> frontend [label="HTTPS"];
+    frontend -> backend  [label="LangGraph SDK\n(upload / poll / chat SSE)"];
+    backend  -> engine   [label="HTTP\n/analyze/game · /analyze/position"];
+    backend  -> qdrant   [label="vector search\n+ upserts"];
+    backend  -> gateway  [label="chat + distill +\nembed calls"];
+    backend  -> tavily   [label="web_search tool"];
+    backend  -> store;
+    backend  -> traces   [style=dashed];
+}

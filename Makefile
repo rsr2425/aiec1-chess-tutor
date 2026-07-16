@@ -71,18 +71,20 @@ ingest:
 
 fetch-games:
 	cd src/backend && set -a && . ../../.env && set +a && \
-		uv run python ../../scripts/fetch_lichess_games.py
+		uv run --extra eval python ../../scripts/fetch_lichess_games.py
 
 # ── Evals ─────────────────────────────────────────────────────────────────────
+RETRIEVER ?= baseline
+
 eval-retrieval:
 	cd src/backend && set -a && . ../../.env && set +a && \
-		QDRANT_URL="$(QDRANT_URL)" QDRANT_API_KEY="$(QDRANT_API_KEY)" \
-		uv run python ../../evals/retrieval_ragas.py
+		QDRANT_URL="$(QDRANT_URL)" QDRANT_API_KEY="$(QDRANT_API_KEY)" RETRIEVER="$(RETRIEVER)" \
+		uv run --extra eval python ../../evals/retrieval_ragas.py
 
 eval-planted:
 	cd src/backend && set -a && . ../../.env && set +a && \
 		QDRANT_URL="$(QDRANT_URL)" QDRANT_API_KEY="$(QDRANT_API_KEY)" \
-		uv run python ../../evals/planted_mistakes/run.py
+		uv run --extra eval python ../../evals/planted_mistakes/run.py
 
 # ── Code quality ──────────────────────────────────────────────────────────────
 lint:

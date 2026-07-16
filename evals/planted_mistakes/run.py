@@ -12,9 +12,11 @@ Results → evals/results/planted_mistakes_{model}_{ts}.md
 
 from __future__ import annotations
 
+import argparse
 import asyncio
 import json
 import os
+import random
 from datetime import datetime
 from pathlib import Path
 
@@ -48,9 +50,17 @@ def _llm(model: str = None):
     return ChatOpenAI(**kwargs)
 
 
+ANNOTATOR_MODEL = os.getenv("ANNOTATOR_MODEL", "openai/gpt-4.1-mini")  # fixed across runs
+ANNOTATED_DIR = GAMES_DIR / "annotated"
+
+
 async def annotate_game_synthetically(pgn: str, planted: list[str]) -> str:
-    """Have an LLM write student annotations embedding the planted misconceptions."""
-    llm = _llm()
+    """Have an LLM write student annotations embedding the planted misconceptions.
+
+    Uses a fixed ANNOTATOR_MODEL (never DISTILL_MODEL) so model-swap runs
+    distill identical inputs.
+    """
+    llm = _llm(ANNOTATOR_MODEL)
     prompt = (
         f"You are writing synthetic student annotations for a chess game to create a benchmark.\n"
         f"The student has these misconceptions (embed 2-3 of them naturally as comments at "
@@ -62,7 +72,10 @@ async def annotate_game_synthetically(pgn: str, planted: list[str]) -> str:
         "but their reasoning reflects the listed misconceptions."
     )
     response = await llm.ainvoke(prompt)
-    return response.content
+    text = response.content.strip()
+    if text.startswith("```"):
+        text = text.strip("`").removeprefix("pgn").strip()
+    return text
 
 
 async def judge_takeaway(takeaway: str, planted: list[str]) -> dict:
@@ -77,32 +90,55 @@ async def judge_takeaway(takeaway: str, planted: list[str]) -> dict:
         'Respond as JSON: {"matches_misconception": true/false, "matched": "...", "rubric": 0-3}'
     )
     response = await llm.ainvoke(prompt)
+    raw = response.content.strip()
+    if raw.startswith("```"):
+        raw = raw.strip("`").removeprefix("json").strip()
     try:
-        return json.loads(response.content)
+        return json.loads(raw)
     except json.JSONDecodeError:
         return {"matches_misconception": False, "matched": None, "rubric": 0}
 
 
-async def run_benchmark() -> None:
+async def run_benchmark(max_games: int | None = None) -> None:
     pgn_files = sorted(GAMES_DIR.glob("*.pgn"))
     if not pgn_files:
         print(f"No PGN files found in {GAMES_DIR}. Run scripts/fetch_lichess_games.py first.")
         return
+    if max_games:
+        pgn_files = pgn_files[:max_games]
 
-    print(f"Running benchmark on {len(pgn_files)} games …")
+    print(f"Running benchmark on {len(pgn_files)} games with DISTILL_MODEL={DISTILL_MODEL} …")
+
+    # The distill node needs a LangGraph store (normally injected by the
+    # server). Compile our own copy of the graph with an in-memory store.
+    from langgraph.store.memory import InMemoryStore
+    from app.graphs.distillation import builder
+
+    distillation_graph = builder.compile(store=InMemoryStore())
+
+    # Deterministic planting so model-swap runs see the same misconceptions
+    random.seed(42)
+
+    ANNOTATED_DIR.mkdir(exist_ok=True)
 
     results = []
-    for pgn_path in pgn_files[:5]:  # limit for quick runs; remove cap for full benchmark
+    for pgn_path in pgn_files:
         pgn = pgn_path.read_text()
-        # Pick 2-3 random misconceptions to plant
-        import random
-        planted = random.sample(MISCONCEPTION_CATALOG, k=2)
 
-        print(f"\n{pgn_path.name} — planting: {planted}")
-        annotated_pgn = await annotate_game_synthetically(pgn, planted)
+        # Cache planted misconceptions + annotated PGN so every benchmark run
+        # (baseline and model-swap) scores the exact same inputs.
+        cache_path = ANNOTATED_DIR / f"{pgn_path.stem}.json"
+        if cache_path.exists():
+            cached = json.loads(cache_path.read_text())
+            planted = cached["planted"]
+            annotated_pgn = cached["annotated_pgn"]
+            print(f"\n{pgn_path.name} — cached, planted: {planted}")
+        else:
+            planted = random.sample(MISCONCEPTION_CATALOG, k=random.choice([2, 3]))
+            print(f"\n{pgn_path.name} — planting: {planted}")
+            annotated_pgn = await annotate_game_synthetically(pgn, planted)
+            cache_path.write_text(json.dumps({"planted": planted, "annotated_pgn": annotated_pgn}))
 
-        # Run distillation graph
-        from app.graphs.distillation import graph as distillation_graph
         from uuid import uuid4
         state = await distillation_graph.ainvoke({
             "user_id": f"benchmark-{uuid4().hex[:8]}",
@@ -160,4 +196,7 @@ async def run_benchmark() -> None:
 
 
 if __name__ == "__main__":
-    asyncio.run(run_benchmark())
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--max-games", type=int, default=None, help="cap games for quick runs")
+    args = parser.parse_args()
+    asyncio.run(run_benchmark(args.max_games))
