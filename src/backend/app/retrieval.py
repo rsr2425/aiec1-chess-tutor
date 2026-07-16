@@ -148,7 +148,10 @@ _bm25_retriever = None
 
 def _library_ensemble_retriever(dense, k: int = 4):
     global _bm25_retriever
-    from langchain.retrievers import EnsembleRetriever
+    try:
+        from langchain.retrievers import EnsembleRetriever
+    except ImportError:  # langchain >= 1.0 moved it
+        from langchain_classic.retrievers import EnsembleRetriever
     from langchain_community.retrievers import BM25Retriever
 
     if _bm25_retriever is None:

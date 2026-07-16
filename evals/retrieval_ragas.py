@@ -150,7 +150,10 @@ def _library_retriever(ensemble: bool = False, k: int = 4):
         return dense
 
     # Task 6: BM25 + dense ensemble
-    from langchain.retrievers import EnsembleRetriever
+    try:
+        from langchain.retrievers import EnsembleRetriever
+    except ImportError:  # langchain >= 1.0 moved it
+        from langchain_classic.retrievers import EnsembleRetriever
     from langchain_community.retrievers import BM25Retriever
     from langchain_core.documents import Document
 
