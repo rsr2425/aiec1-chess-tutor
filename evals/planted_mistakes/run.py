@@ -185,6 +185,10 @@ async def run_benchmark(max_games: int | None = None) -> None:
             judgments.append(j)
 
         matched = sum(1 for j in judgments if j["matches_misconception"])
+        # Recall counts distinct planted misconceptions covered, not matching
+        # takeaways — multiple takeaways can hit the same misconception.
+        covered = {j.get("matched") for j in judgments if j["matches_misconception"] and j.get("matched")}
+        recall = min(len(covered), len(planted)) / len(planted)
         rubric_avg = sum(j["rubric"] for j in judgments) / max(len(judgments), 1)
 
         results.append({
@@ -193,7 +197,7 @@ async def run_benchmark(max_games: int | None = None) -> None:
             "takeaway_count": len(takeaways),
             "matched": matched,
             "precision": matched / max(len(takeaways), 1),
-            "recall": matched / len(planted),
+            "recall": recall,
             "rubric_avg": rubric_avg,
         })
         with partial_path.open("a") as f:
